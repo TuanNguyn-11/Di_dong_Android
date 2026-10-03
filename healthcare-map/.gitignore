@@ -1,4 +1,8 @@
 node_modules/
+!android/
+!www/
+www/app.js
+www/app.js.map
 android/app/build/
 android/build/
 android/.gradle/

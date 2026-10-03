@@ -1,0 +1,1356 @@
+/* ============================================================
+   styles.css — Fall Guard
+   Mobile-first · CSS variables · Flexbox/Grid · không dùng framework
+   Phong cách nhất quán với Healthcare Map (cùng bảng màu, bo góc, shadow)
+   ============================================================ */
+
+:root {
+  /* Màu bắt buộc theo yêu cầu thiết kế — CHUNG với Healthcare Map */
+  --color-navy:        #0B1E3A;
+  --color-slate:       #5E6F88;
+  --color-primary:     #1976D2;
+  --color-bg:          #F5F8FC;
+  --color-white:       #FFFFFF;
+  --color-danger:      #FF2C2C;
+
+  /* Dẫn xuất từ bảng màu gốc, dùng cho trạng thái tương tác */
+  --color-primary-hover: #145da0;
+  --color-primary-soft:  rgba(25, 118, 210, 0.10);
+  --color-danger-hover:  #d81f1f;
+  --color-danger-soft:   rgba(255, 44, 44, 0.10);
+  --color-border:        #DCE3EE;
+  --color-online:        #2E9E5B;
+  --color-online-soft:   rgba(46, 158, 91, 0.10);
+  --color-warning:       #F59E0B;
+  --color-warning-soft:  rgba(245, 158, 11, 0.10);
+
+  --radius-card: 12px;
+  --radius-btn:  8px;
+  --shadow-card: 0 1px 3px rgba(11, 30, 58, 0.06), 0 6px 20px rgba(11, 30, 58, 0.06);
+  --shadow-lg:   0 4px 24px rgba(11, 30, 58, 0.12);
+  --transition-fast: 0.2s ease;
+  --transition-page: 0.3s ease;
+
+  --font-main: 'Segoe UI', Arial, Helvetica, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--color-bg);
+  color: var(--color-navy);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, p { margin: 0; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a { text-decoration: none; color: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ============================================================
+   PAGE VISIBILITY (SPA pattern)
+   ============================================================ */
+.page {
+  display: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  flex-direction: column;
+}
+.page--active {
+  display: flex;
+  animation: page-fade var(--transition-page);
+}
+@keyframes page-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.app-shell { display: block; }
+
+.page-content {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ============================================================
+   ONBOARDING — giống login screen Healthcare Map
+   ============================================================ */
+#page-onboarding.page--active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 24px 16px;
+}
+
+.onboarding-shell {
+  width: 100%;
+  max-width: 400px;
+}
+
+.onboarding-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.onboarding-brand__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16px;
+}
+.onboarding-brand__title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-navy);
+  letter-spacing: -0.3px;
+}
+.onboarding-brand__subtitle {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+
+.onboarding-form {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  padding: 28px 24px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Kết quả sau khi tạo mã */
+.onboarding-result {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  padding: 28px 24px;
+  box-shadow: var(--shadow-card);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.onboarding-result__label {
+  font-size: 14px;
+  color: var(--color-slate);
+}
+.onboarding-result__device-id {
+  font-size: 32px;
+  font-weight: 800;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--color-primary);
+  letter-spacing: 3px;
+  background: var(--color-primary-soft);
+  padding: 16px 24px;
+  border-radius: var(--radius-btn);
+  user-select: all;
+}
+.onboarding-result__hint {
+  font-size: 13px;
+  color: var(--color-slate);
+  line-height: 1.5;
+  max-width: 320px;
+}
+.onboarding-result__hint strong {
+  color: var(--color-navy);
+}
+
+/* ============================================================
+   FORM FIELDS
+   ============================================================ */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+.field input, .field select {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--color-navy);
+  background: var(--color-white);
+  width: 100%;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+.field input.input--invalid {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
+}
+.field__error {
+  font-size: 12px;
+  color: var(--color-danger);
+  min-height: 14px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 24px;
+  border-radius: var(--radius-btn);
+  border: 1.5px solid transparent;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.btn:active { transform: scale(0.97); }
+.btn--block { width: 100%; }
+.btn--sm { padding: 8px 16px; font-size: 13px; }
+.btn--lg { padding: 16px 32px; font-size: 16px; border-radius: var(--radius-card); }
+
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+.btn--primary:hover { background: var(--color-primary-hover); }
+
+.btn--secondary {
+  background: var(--color-white);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.btn--secondary:hover { background: var(--color-primary-soft); }
+
+.btn--danger {
+  background: var(--color-danger);
+  color: var(--color-white);
+  box-shadow: 0 2px 8px rgba(255, 44, 44, 0.3);
+}
+.btn--danger:hover { background: var(--color-danger-hover); }
+
+.btn--danger-outline {
+  background: var(--color-white);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+.btn--danger-outline:hover { background: var(--color-danger-soft); }
+
+.btn--ghost {
+  background: var(--color-bg);
+  color: var(--color-slate);
+}
+.btn--ghost:hover { background: var(--color-border); }
+
+.btn--warning {
+  background: var(--color-warning);
+  color: var(--color-white);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-primary);
+  flex: 1;
+}
+.topbar__spacer { width: 36px; }
+
+/* ============================================================
+   HOME — DEVICE STATUS CARD
+   ============================================================ */
+.device-status-card {
+  background: var(--color-navy);
+  color: var(--color-white);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.device-status-card::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  pointer-events: none;
+}
+.device-status-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.device-status-card__name {
+  font-size: 22px;
+  font-weight: 800;
+}
+.device-status-card__id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.device-status-card__label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.device-status-card__id-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 2px;
+}
+.device-status-card__copy-btn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: background var(--transition-fast);
+}
+.device-status-card__copy-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Monitoring toggle row */
+.monitor-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.06);
+  padding: 12px 14px;
+  border-radius: var(--radius-btn);
+}
+.monitor-toggle-row__label {
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+}
+.monitor-status {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.monitor-status--on {
+  background: var(--color-online-soft);
+  color: var(--color-online);
+}
+.monitor-status--off {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+}
+
+/* ============================================================
+   SENSOR STATUS GRID
+   ============================================================ */
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.sensor-card {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  padding: 14px 12px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.sensor-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.sensor-card__icon--gps { background: var(--color-primary-soft); }
+.sensor-card__icon--accel { background: var(--color-online-soft); }
+.sensor-card__icon--gyro { background: var(--color-warning-soft); }
+.sensor-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.sensor-card__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.sensor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sensor-dot--active {
+  background: var(--color-online);
+  box-shadow: 0 0 0 0 rgba(46,158,91,0.5);
+  animation: pulse-dot 2s infinite;
+}
+.sensor-dot--error {
+  background: var(--color-danger);
+  animation: pulse-dot-red 2s infinite;
+}
+.sensor-dot--off {
+  background: var(--color-border);
+}
+
+@keyframes pulse-dot {
+  0%  { box-shadow: 0 0 0 0 rgba(46,158,91,0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(46,158,91,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(46,158,91,0); }
+}
+@keyframes pulse-dot-red {
+  0%  { box-shadow: 0 0 0 0 rgba(255,44,44,0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(255,44,44,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(255,44,44,0); }
+}
+
+/* Location card */
+.location-card {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.location-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.location-card__body {
+  flex: 1;
+}
+.location-card__label {
+  font-size: 12px;
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.location-card__coords {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-navy);
+  line-height: 1.5;
+}
+
+/* Simulate fall button */
+.simulate-section {
+  margin-top: 8px;
+}
+.simulate-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--color-white);
+  color: var(--color-danger);
+  border: 2px dashed var(--color-danger);
+  border-radius: var(--radius-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+.simulate-btn:hover {
+  background: var(--color-danger-soft);
+  border-style: solid;
+}
+.simulate-btn__badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--color-warning);
+  color: var(--color-white);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   FALL ALERT — FULL SCREEN, NỀN ĐỎ
+   ============================================================ */
+#page-fall-alert.page--active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-danger);
+  animation: alert-pulse 2s ease-in-out infinite alternate;
+}
+@keyframes alert-pulse {
+  from { background: #FF2C2C; }
+  to   { background: #E01E1E; }
+}
+
+.fall-alert-shell {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  color: var(--color-white);
+}
+
+.fall-alert__countdown-ring {
+  position: relative;
+  width: 128px;
+  height: 128px;
+}
+.fall-alert__countdown-ring svg {
+  width: 128px;
+  height: 128px;
+  transform: rotate(-90deg);
+}
+.fall-alert__countdown-ring circle {
+  fill: none;
+  stroke-width: 6;
+}
+.countdown-ring-bg {
+  stroke: rgba(255,255,255,0.2);
+}
+.countdown-ring-progress {
+  stroke: var(--color-white);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.fall-alert__countdown-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--color-white);
+}
+
+.fall-alert__title {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.fall-alert__subtitle {
+  font-size: 15px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.5;
+}
+.fall-alert__confidence {
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+}
+
+.fall-alert__cancel-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 18px;
+  font-size: 17px;
+  font-weight: 800;
+  background: var(--color-white);
+  color: var(--color-online);
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.fall-alert__cancel-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 30px rgba(0,0,0,0.2);
+}
+.fall-alert__cancel-btn:active {
+  transform: scale(0.98);
+}
+
+/* Emergency contacts in alert */
+.alert-contacts {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.alert-contacts__title {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.alert-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.12);
+  padding: 12px 14px;
+  border-radius: var(--radius-btn);
+  color: var(--color-white);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+.alert-contact-item:hover {
+  background: rgba(255,255,255,0.2);
+}
+.alert-contact-item__name {
+  font-weight: 700;
+  font-size: 14px;
+  flex: 1;
+}
+.alert-contact-item__relation {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+.alert-contact-item__phone {
+  font-size: 13px;
+}
+.alert-no-contacts {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  font-style: italic;
+}
+
+/* ============================================================
+   BOTTOM NAVIGATION
+   ============================================================ */
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  background: var(--color-white);
+  border-top: 1px solid var(--color-border);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0));
+  z-index: 10;
+}
+.bottom-nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--color-slate);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 2px;
+  border-radius: var(--radius-btn);
+  transition: color var(--transition-fast);
+}
+.bottom-nav__item:hover { color: var(--color-primary); }
+.bottom-nav__item--active { color: var(--color-primary); }
+
+/* ============================================================
+   LỊCH SỬ CẢNH BÁO
+   ============================================================ */
+.filter-bar {
+  font-size: 13px;
+  color: var(--color-slate);
+  padding: 4px 2px;
+}
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.history-group__date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-slate);
+  margin-bottom: 8px;
+}
+.history-group__items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.history-item {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.history-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.history-item__body { flex: 1; min-width: 0; }
+.history-item__title { font-size: 14px; font-weight: 700; color: var(--color-navy); }
+.history-item__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-slate);
+}
+.history-item__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Status badge */
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.status-badge--sent {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+.status-badge--cancelled {
+  background: var(--color-online-soft);
+  color: var(--color-online);
+}
+.confidence-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-slate);
+  background: var(--color-bg);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--color-slate);
+}
+.empty-state__icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+.empty-state__text {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   DANH BẠ KHẨN CẤP
+   ============================================================ */
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.contact-card {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.contact-card__info { flex: 1; }
+.contact-card__name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+.contact-card__relation {
+  font-size: 13px;
+  color: var(--color-slate);
+  margin-top: 2px;
+}
+.contact-card__phone {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.contact-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   CÀI ĐẶT
+   ============================================================ */
+.settings-section {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.settings-section__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.settings-row__label { color: var(--color-navy); }
+.settings-row__value {
+  color: var(--color-slate);
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 1px;
+}
+
+/* Toggle switch — giống Healthcare Map */
+.switch { position: relative; display: inline-block; width: 48px; height: 28px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch__track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-border);
+  border-radius: 999px;
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+}
+.switch__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform var(--transition-fast);
+}
+.switch input:checked + .switch__track { background: var(--color-primary); }
+.switch input:checked + .switch__track .switch__thumb { transform: translateX(20px); }
+.switch input:focus-visible + .switch__track { box-shadow: 0 0 0 3px var(--color-primary-soft); }
+
+/* Button groups — Sensitivity & Countdown */
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+.sensitivity-btn, .countdown-btn {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  color: var(--color-slate);
+  transition: all var(--transition-fast);
+}
+.sensitivity-btn:hover, .countdown-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.sensitivity-btn--active, .countdown-btn--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+/* Settings name input inline */
+.settings-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.settings-name-row input {
+  flex: 1;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--color-navy);
+  background: var(--color-bg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.settings-name-row input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  background: var(--color-white);
+}
+
+/* ============================================================
+   MODAL — FORM LIÊN HỆ KHẨN CẤP
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 30, 58, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: overlay-fade 0.2s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.modal-overlay[hidden] {
+  display: none;
+}
+@keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: var(--color-white);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: modal-rise 0.25s ease;
+}
+.modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast);
+}
+.modal__close:hover { background: var(--color-border); }
+@media (min-width: 640px) {
+  .modal-overlay { align-items: center; }
+  .modal { border-radius: var(--radius-card); }
+}
+@keyframes modal-rise {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.modal__title { font-size: 18px; font-weight: 800; color: var(--color-navy); }
+.modal__footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.modal__footer .btn { flex: 1; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  background: var(--color-navy);
+  color: var(--color-white);
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  animation: toast-in 0.25s ease;
+  max-width: 90vw;
+  text-align: center;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (min-width: 768px) {
+  .sensor-grid { grid-template-columns: repeat(3, 1fr); }
+  .bottom-nav {
+    max-width: 640px;
+    margin: 0 auto;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-content { max-width: 900px; }
+  .device-status-card { padding: 24px 28px; }
+}
+
+/* ============================================================
+   BỔ SUNG: XÁC THỰC, GHÉP CẶP OTP, KẾT NỐI NGƯỜI THÂN
+   ============================================================ */
+
+/* --- Banner cảnh báo chưa cấu hình Firebase --- */
+.config-warning {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  padding: 10px 14px;
+  background: var(--color-warning);
+  color: #3d2c00;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.config-warning code {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+/* --- Khung chung cho 4 trang xác thực --- */
+#page-login.page--active,
+#page-register.page--active,
+#page-otp.page--active,
+#page-forgot.page--active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 32px 16px;
+}
+
+.auth-shell {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-form {
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.auth-links--center { justify-content: center; }
+
+.link {
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.link:hover { text-decoration: underline; }
+
+.auth-hint {
+  font-size: 12px;
+  color: var(--color-slate);
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.auth-success {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1b5e20;
+  background: var(--color-online-soft);
+  border: 1px solid rgba(46, 158, 91, 0.35);
+  border-radius: var(--radius-btn);
+  padding: 10px 12px;
+  margin: 0;
+}
+
+/* --- Ô mật khẩu có nút con mắt --- */
+.field__password-wrap { position: relative; display: flex; align-items: center; }
+.field__password-wrap input { padding-right: 44px; width: 100%; }
+.icon-toggle {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: transparent;
+}
+.icon-toggle:hover { background: var(--color-bg); }
+
+/* --- Ô nhập mã OTP --- */
+.otp-input {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  padding: 14px 12px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Thẻ tóm tắt người thân trên trang chủ --- */
+.guardian-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px;
+}
+.guardian-summary-card__icon { font-size: 26px; line-height: 1; }
+.guardian-summary-card__body { flex: 1; min-width: 0; }
+.guardian-summary-card__label {
+  font-size: 12px;
+  color: var(--color-slate);
+  margin-bottom: 2px;
+}
+.guardian-summary-card__value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+/* --- Các bước ghép cặp --- */
+.pair-step-card {
+  position: relative;
+  background: var(--color-white);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+.pair-step-card__badge {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.pair-step-card__title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-navy);
+}
+.pair-step-card__desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-slate);
+}
+.pair-step-card__id-row {
+  width: 100%;
+  justify-content: center;
+}
+.pair-step-card__id {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--color-navy);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Mã OTP 6 số hiển thị to --- */
+.otp-display {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-card);
+  padding: 14px 18px;
+  width: 100%;
+}
+.otp-display__countdown {
+  font-size: 12px;
+  color: var(--color-slate);
+}
+
+/* --- Nhật ký yêu cầu kết nối --- */
+.pairing-log {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.pairing-log__line {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-navy);
+  background: var(--color-bg);
+  border-radius: var(--radius-btn);
+  padding: 7px 10px;
+}
+.pairing-log__empty {
+  font-size: 12px;
+  color: var(--color-slate);
+  font-style: italic;
+}
+
+/* --- 5 mục trên thanh điều hướng cần chật hơn một chút --- */
+.bottom-nav__item span { font-size: 10px; }
+
+/* Khi banner cảnh báo cấu hình đang hiện, đẩy nội dung xuống cho khỏi bị che */
+.has-config-warning .page { padding-top: 76px; }
+
+/* ============================================================
+   Thuộc tính `hidden` phải luôn thắng.
+   Không có dòng này, mọi quy tắc `display: flex/grid/block` của tác giả sẽ đè
+   lên `[hidden]` của trình duyệt và phần tử vẫn hiện dù JS đã ẩn nó đi.
+   ============================================================ */
+[hidden] { display: none !important; }
+
+/* Chú thích dưới nút giả lập té ngã */
+.simulate-hint {
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-slate);
+  margin-top: 6px;
+}
+
+/* Nút giả lập bị khoá khi đang tắt giám sát */
+.simulate-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+.simulate-btn:disabled:hover { transform: none; }
+
+/* Chú thích nhỏ dưới một nhóm cài đặt */
+.settings-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-slate);
+  margin-top: 8px;
+}
+
+/* Nút "Sao chép" trong khung ghép cặp nằm trên nền TRẮNG, khác với thẻ mã thiết
+   bị ở trang chủ vốn có nền navy. Dùng lại nguyên màu chữ trắng của thẻ kia thì
+   nút thành tàng hình, nên phải tô lại màu ở đây. */
+.pair-step-card .device-status-card__copy-btn {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+.pair-step-card .device-status-card__copy-btn:hover {
+  background: rgba(25, 118, 210, 0.2);
+}

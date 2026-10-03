@@ -1,14 +1,8 @@
-// ============================================================
-// native.ts — Lấy GPS & pin, ưu tiên plugin native nếu có
-// ============================================================
-// WebView trên Android nhiều khi chặn `navigator.geolocation` vì không có hộp
-// thoại xin quyền. Nếu dự án đã cài plugin `@capacitor/geolocation` thì
-// Capacitor đăng ký nó vào `window.Capacitor.Plugins.Geolocation`, dùng đường
-// đó sẽ xin quyền đúng chuẩn Android.
-//
-// Truy cập plugin qua `window.Capacitor.Plugins` (thay vì `import`) để dự án
-// vẫn biên dịch được ngay cả khi CHƯA cài plugin — lúc đó tự động quay về dùng
-// API chuẩn của trình duyệt.
+import { registerPlugin, Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
+import { Device } from '@capacitor/device';
+
+// Capacitor plugins are explicitly registered/imported so Android and browser builds agree.
 
 export interface GeoFix {
   latitude: number;
@@ -57,18 +51,33 @@ export interface PluginListenerHandle {
  * động khi màn hình đã tắt — điều mà WebView không tự làm được.
  */
 export interface FallGuardSensorPlugin {
-  isAvailable: () => Promise<{ available: boolean; running: boolean }>;
-  start: (options: { thresholdMs2: number; alarmMuted: boolean }) => Promise<void>;
+  isAvailable: () => Promise<AiDiagnostics>;
+  start: (options: { alarmMuted: boolean }) => Promise<void>;
   stop: () => Promise<void>;
-  setThreshold: (options: { thresholdMs2: number }) => Promise<void>;
   setAlarmMuted: (options: { muted: boolean }) => Promise<void>;
   startAlarm: () => Promise<void>;
   stopAlarm: () => Promise<void>;
   requestBatteryExemption: () => Promise<{ granted: boolean }>;
   addListener: {
+    (event: 'monitorError', cb: (data: { message: string }) => void): Promise<PluginListenerHandle>;
     (event: 'sensorBatch', cb: (data: SensorBatch) => void): Promise<PluginListenerHandle>;
-    (event: 'fallDetected', cb: (data: { peak: number }) => void): Promise<PluginListenerHandle>;
+    (event: 'fallDetected', cb: (data: { probability: number; source: 'model' }) => void): Promise<PluginListenerHandle>;
   };
+}
+
+export interface AiDiagnostics {
+  schemaVersion: number;
+  source: string;
+  available: boolean;
+  running: boolean;
+  modelName: string;
+  modelSha256: string;
+  sessionId: string;
+  inferenceCount: number;
+  lastInferenceMicros: number;
+  probability: number;
+  inferenceAgeMs: number;
+  goldenPassed: number;
 }
 
 interface CapacitorGlobal {
@@ -80,16 +89,13 @@ interface CapacitorGlobal {
   };
 }
 
-function capacitor(): CapacitorGlobal | undefined {
-  return (window as unknown as { Capacitor?: CapacitorGlobal }).Capacitor;
+const sensorPlugin = registerPlugin<FallGuardSensorPlugin>('FallGuardSensor');
+function capacitor(): CapacitorGlobal {
+  return { isNativePlatform: () => Capacitor.isNativePlatform(), Plugins: { Geolocation, Device } };
 }
 
-/**
- * Plugin cảm biến nền, hoặc undefined khi chạy trên trình duyệt.
- * Mọi nơi gọi đều phải chịu được giá trị undefined.
- */
 export function getSensorPlugin(): FallGuardSensorPlugin | undefined {
-  return capacitor()?.Plugins?.FallGuardSensor;
+  return Capacitor.isNativePlatform() ? sensorPlugin : undefined;
 }
 
 /** App có đang chạy trong vỏ native Android (Capacitor) không? */
@@ -220,38 +226,52 @@ export interface NativeMonitorHandle {
  * Bật dịch vụ nền đọc cảm biến. Trả về null khi không có plugin (đang chạy trên
  * trình duyệt), để nơi gọi tự quay về dùng cảm biến của WebView.
  *
- * `onBatch` nhận từng lô mẫu; `onFall` chỉ bắn khi phần Java đã dò thấy va đập
- * vượt ngưỡng — kể cả lúc màn hình tắt và JavaScript đang bị hệ điều hành bóp.
+ * `onBatch` nhận từng lô mẫu; `onFall` bắn sau hai cửa sổ AI đạt ngưỡng — kể cả lúc màn hình tắt và JavaScript đang bị hệ điều hành bóp.
  */
 export async function startNativeMonitor(
-  options: { thresholdMs2: number; alarmMuted: boolean },
+  options: { alarmMuted: boolean },
   onBatch: (batch: SensorBatch) => void,
-  onFall: (peak: number) => void
+  onFall: (probability: number) => void,
+  onError: (message: string) => void,
+  onDiagnostics?: (value: AiDiagnostics) => void
 ): Promise<NativeMonitorHandle | null> {
   const plugin = getSensorPlugin();
   if (!isNativePlatform() || !plugin) return null;
 
   const handles: PluginListenerHandle[] = [];
   try {
+    handles.push(await plugin.addListener('monitorError', (data) => onError(data.message)));
     handles.push(await plugin.addListener('sensorBatch', onBatch));
-    handles.push(await plugin.addListener('fallDetected', (data) => onFall(data.peak)));
+    handles.push(await plugin.addListener('fallDetected', (data) => onFall(data.probability)));
+    const availability = await plugin.isAvailable();
+    if (!availability.available) throw new Error('Điện thoại cần có cả gia tốc kế và con quay hồi chuyển để chạy AI.');
     await plugin.start(options);
-  } catch {
+  } catch (error) {
     await Promise.all(handles.map((h) => h.remove().catch(() => undefined)));
-    return null;
+    throw error;
   }
 
+  let active = true;
+  let reading = false;
+  const poll = async () => {
+    if (!active || reading || !onDiagnostics) return;
+    reading = true;
+    try {
+      const value = await plugin.isAvailable();
+      if (active && value.schemaVersion === 1) onDiagnostics(value);
+    } catch { /* No fabricated diagnostics when native bridge is unavailable. */ }
+    finally { reading = false; }
+  };
+  void poll();
+  const diagnosticTimer = window.setInterval(() => void poll(), 1000);
   return {
     stop: () => {
+      active = false;
+      window.clearInterval(diagnosticTimer);
       void plugin.stop().catch(() => undefined);
       handles.forEach((h) => void h.remove().catch(() => undefined));
     },
   };
-}
-
-/** Cập nhật ngưỡng phát hiện khi người dùng đổi độ nhạy trong Cài đặt */
-export function setNativeThreshold(thresholdMs2: number): void {
-  getSensorPlugin()?.setThreshold({ thresholdMs2 }).catch(() => undefined);
 }
 
 /** Mở trang xin bỏ giới hạn tiết kiệm pin của Android */

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0B1E3A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Fall Guard — Ứng dụng phát hiện té ngã dành cho người có nguy cơ, tích hợp cảm biến và GPS">
+<title>Fall Guard — Phát hiện té ngã</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Cảnh báo khi src/firebase-config.ts chưa được điền -->
+<div id="config-warning" class="config-warning" hidden>
+  <strong>⚠️ Chưa cấu hình Firebase.</strong>
+  Mở <code>src/firebase-config.ts</code>, dán config lấy từ Firebase Console rồi chạy lại
+  <code>npm run build</code>. Xem hướng dẫn trong <code>FIREBASE-SETUP.md</code>.
+</div>
+
+<!-- ============================================================ -->
+<!-- TRANG: ĐĂNG NHẬP                                             -->
+<!-- ============================================================ -->
+<main id="page-login" class="page page--active" data-page="login">
+  <div class="auth-shell">
+    <div class="onboarding-brand">
+      <div class="onboarding-brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
+          <circle cx="24" cy="14" r="6" fill="#1976D2"/>
+          <path d="M24 22c-5 0-9 3-9 7v3a2 2 0 002 2h14a2 2 0 002-2v-3c0-4-4-7-9-7z" fill="#1976D2" opacity="0.7"/>
+          <path d="M18 38l-4-6" stroke="#FF2C2C" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M30 38l4-6" stroke="#FF2C2C" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="24" cy="40" r="3" fill="#FF2C2C" opacity="0.3"/>
+        </svg>
+      </div>
+      <h1 class="onboarding-brand__title">Fall Guard</h1>
+      <p class="onboarding-brand__subtitle">Đăng nhập để bắt đầu được bảo vệ</p>
+    </div>
+
+    <form id="login-form" class="auth-form" novalidate>
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" name="email" placeholder="vidu@gmail.com" autocomplete="username" inputmode="email">
+        <p class="field__error" id="error-login-email" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="login-password">Mật khẩu</label>
+        <div class="field__password-wrap">
+          <input type="password" id="login-password" name="password" placeholder="Ít nhất 6 ký tự" autocomplete="current-password">
+          <button type="button" class="icon-toggle" id="toggle-login-password" aria-label="Hiện mật khẩu" data-visible="false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E6F88" stroke-width="1.8">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <p class="field__error" id="error-login-password" role="alert"></p>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" id="login-submit">Đăng nhập</button>
+
+      <div class="auth-links">
+        <a href="#" class="link" id="link-to-forgot">Quên mật khẩu?</a>
+        <a href="#" class="link" id="link-to-register">Đăng ký tài khoản</a>
+      </div>
+    </form>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- TRANG: ĐĂNG KÝ                                               -->
+<!-- ============================================================ -->
+<main id="page-register" class="page" data-page="register">
+  <div class="auth-shell">
+    <div class="onboarding-brand">
+      <h1 class="onboarding-brand__title">Đăng ký tài khoản</h1>
+      <p class="onboarding-brand__subtitle">Chúng tôi sẽ gửi mã xác thực 6 số<br>tới email của bạn</p>
+    </div>
+
+    <form id="register-form" class="auth-form" novalidate>
+      <div class="field">
+        <label for="register-name">Họ và tên</label>
+        <input type="text" id="register-name" placeholder="VD: Nguyễn Văn A" autocomplete="name">
+        <p class="field__error" id="error-register-name" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="register-email">Email</label>
+        <input type="email" id="register-email" placeholder="vidu@gmail.com" autocomplete="email" inputmode="email">
+        <p class="field__error" id="error-register-email" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="register-password">Mật khẩu</label>
+        <input type="password" id="register-password" placeholder="Ít nhất 6 ký tự" autocomplete="new-password">
+        <p class="field__error" id="error-register-password" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="register-password2">Nhập lại mật khẩu</label>
+        <input type="password" id="register-password2" placeholder="Nhập lại mật khẩu" autocomplete="new-password">
+        <p class="field__error" id="error-register-password2" role="alert"></p>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" id="register-submit">Gửi mã xác thực</button>
+
+      <div class="auth-links auth-links--center">
+        <a href="#" class="link" id="link-back-login">← Quay lại đăng nhập</a>
+      </div>
+    </form>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- TRANG: NHẬP MÃ OTP XÁC THỰC EMAIL                            -->
+<!-- ============================================================ -->
+<main id="page-otp" class="page" data-page="otp">
+  <div class="auth-shell">
+    <div class="onboarding-brand">
+      <div style="font-size:40px;">✉️</div>
+      <h1 class="onboarding-brand__title">Nhập mã xác thực</h1>
+      <p class="onboarding-brand__subtitle">
+        Mã 6 số vừa được gửi tới<br><strong id="otp-email-label">email của bạn</strong>
+      </p>
+    </div>
+
+    <div class="auth-form">
+      <div class="field">
+        <label for="otp-input">Mã OTP</label>
+        <input type="text" id="otp-input" class="otp-input" placeholder="000000" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+        <p class="field__error" id="error-otp" role="alert"></p>
+      </div>
+
+      <button type="button" class="btn btn--primary btn--block" id="btn-verify-otp">Xác nhận &amp; tạo tài khoản</button>
+      <button type="button" class="btn btn--secondary btn--block" id="btn-resend-otp">Gửi lại mã</button>
+      <p class="auth-hint" id="otp-resend-hint"></p>
+
+      <div class="auth-links auth-links--center">
+        <a href="#" class="link" id="link-otp-back">← Sửa thông tin đăng ký</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- TRANG: QUÊN MẬT KHẨU                                         -->
+<!-- ============================================================ -->
+<main id="page-forgot" class="page" data-page="forgot">
+  <div class="auth-shell">
+    <div class="onboarding-brand">
+      <div style="font-size:40px;">🔑</div>
+      <h1 class="onboarding-brand__title">Quên mật khẩu</h1>
+      <p class="onboarding-brand__subtitle">Nhập email đã đăng ký, hệ thống sẽ gửi<br>link đặt lại mật khẩu cho bạn</p>
+    </div>
+
+    <form id="forgot-form" class="auth-form" novalidate>
+      <div class="field">
+        <label for="forgot-email">Email</label>
+        <input type="email" id="forgot-email" placeholder="vidu@gmail.com" autocomplete="email" inputmode="email">
+        <p class="field__error" id="error-forgot-email" role="alert"></p>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" id="btn-send-reset">Gửi link đặt lại mật khẩu</button>
+      <p class="auth-success" id="forgot-success" hidden></p>
+
+      <div class="auth-links auth-links--center">
+        <a href="#" class="link" id="link-forgot-back">← Quay lại đăng nhập</a>
+      </div>
+    </form>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- SHELL CHUNG CHO CÁC TRANG SAU ĐĂNG NHẬP                      -->
+<!-- ============================================================ -->
+<div id="app-shell" class="app-shell">
+
+  <!-- ============================================================ -->
+  <!-- TRANG: ONBOARDING (đặt tên & sinh mã thiết bị, chạy 1 lần)  -->
+  <!-- ============================================================ -->
+  <main id="page-onboarding" class="page" data-page="onboarding">
+    <div class="onboarding-shell">
+      <div class="onboarding-brand">
+        <div class="onboarding-brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
+            <circle cx="24" cy="14" r="6" fill="#1976D2"/>
+            <path d="M24 22c-5 0-9 3-9 7v3a2 2 0 002 2h14a2 2 0 002-2v-3c0-4-4-7-9-7z" fill="#1976D2" opacity="0.7"/>
+            <path d="M18 38l-4-6" stroke="#FF2C2C" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M30 38l4-6" stroke="#FF2C2C" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="24" cy="40" r="3" fill="#FF2C2C" opacity="0.3"/>
+          </svg>
+        </div>
+        <h1 class="onboarding-brand__title">Thiết lập thiết bị</h1>
+        <p class="onboarding-brand__subtitle">Đặt tên hiển thị cho người thân<br>và nhận mã thiết bị 12 số</p>
+      </div>
+
+      <form id="onboarding-form" class="onboarding-form" novalidate>
+        <div class="field">
+          <label for="onboarding-name">Tên của bạn</label>
+          <input type="text" id="onboarding-name" name="name" placeholder="VD: Nguyễn Văn A" autocomplete="name">
+          <p class="field__error" id="error-name" role="alert"></p>
+        </div>
+        <button type="submit" class="btn btn--primary btn--block" id="onboarding-submit">Tạo mã thiết bị</button>
+      </form>
+
+      <div id="onboarding-result" class="onboarding-result" hidden>
+        <div style="font-size:36px;">🛡️</div>
+        <p class="onboarding-result__label">Mã thiết bị của bạn</p>
+        <div class="onboarding-result__device-id" id="onboarding-device-id">000000000000</div>
+        <button type="button" class="btn btn--secondary" id="btn-copy-device-id">📋 Sao chép mã</button>
+        <p class="onboarding-result__hint">
+          Đọc mã này cho <strong>người thân</strong> để họ nhập vào app <strong>Healthcare Map</strong>.
+          Sau đó vào tab <strong>Kết nối</strong> để lấy mã OTP 6 số xác nhận.
+        </p>
+        <button type="button" class="btn btn--primary btn--block btn--lg" id="btn-start-app">Vào trang chủ →</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- TRANG: TRANG CHỦ / GIÁM SÁT                                 -->
+  <!-- ============================================================ -->
+  <main id="page-home" class="page" data-page="home">
+    <header class="topbar">
+      <span class="topbar__title">Fall Guard</span>
+      <span class="topbar__spacer" aria-hidden="true"></span>
+    </header>
+
+    <div class="page-content">
+      <section class="device-status-card">
+        <div class="device-status-card__header">
+          <span class="device-status-card__name" id="home-user-name">Người dùng</span>
+        </div>
+        <div>
+          <div class="device-status-card__label">Mã thiết bị</div>
+          <div class="device-status-card__id-row">
+            <span class="device-status-card__id-value" id="home-device-id">000000000000</span>
+            <button type="button" class="device-status-card__copy-btn" id="btn-copy-home-id">Sao chép</button>
+          </div>
+        </div>
+        <div class="monitor-toggle-row">
+          <span class="monitor-toggle-row__label">Giám sát cảm biến</span>
+          <span class="monitor-status monitor-status--off" id="monitoring-status-text">Đã tắt</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-monitoring">
+            <span class="switch__track"><span class="switch__thumb"></span></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Tình trạng kết nối người thân -->
+      <section class="guardian-summary-card">
+        <div class="guardian-summary-card__icon">👨‍👩‍👧</div>
+        <div class="guardian-summary-card__body">
+          <div class="guardian-summary-card__label">Người thân theo dõi</div>
+          <div class="guardian-summary-card__value" id="home-guardian-count">Chưa có người thân nào</div>
+        </div>
+        <button type="button" class="btn btn--secondary btn--sm" id="btn-open-pairing">Kết nối</button>
+      </section>
+
+      <section class="sensor-grid">
+        <div class="sensor-card">
+          <div class="sensor-card__icon sensor-card__icon--gps">📡</div>
+          <div class="sensor-card__label">GPS</div>
+          <div class="sensor-card__status">
+            <span class="sensor-dot sensor-dot--off" id="sensor-gps-dot"></span>
+            <span id="sensor-gps-status">Tắt</span>
+          </div>
+        </div>
+        <div class="sensor-card">
+          <div class="sensor-card__icon sensor-card__icon--accel">📊</div>
+          <div class="sensor-card__label">Gia tốc kế</div>
+          <div class="sensor-card__status">
+            <span class="sensor-dot sensor-dot--off" id="sensor-accel-dot"></span>
+            <span id="sensor-accel-status">Tắt</span>
+          </div>
+        </div>
+        <div class="sensor-card">
+          <div class="sensor-card__icon sensor-card__icon--gyro">🔄</div>
+          <div class="sensor-card__label">Con quay hồi chuyển</div>
+          <div class="sensor-card__status">
+            <span class="sensor-dot sensor-dot--off" id="sensor-gyro-dot"></span>
+            <span id="sensor-gyro-status">Tắt</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="location-card">
+        <div class="location-card__icon">📍</div>
+        <div class="location-card__body">
+          <div class="location-card__label">Vị trí hiện tại</div>
+          <div class="location-card__coords">
+            N: <span id="current-lat">chưa có</span><br>
+            E: <span id="current-lng">chưa có</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <nav class="bottom-nav" data-nav-host aria-label="Điều hướng chính"></nav>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- TRANG: KẾT NỐI NGƯỜI THÂN (hiển thị OTP 6 số)               -->
+  <!-- ============================================================ -->
+  <main id="page-pairing" class="page" data-page="pairing">
+    <header class="topbar">
+      <button type="button" class="topbar__back" id="pairing-back-btn" aria-label="Quay lại">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1976D2" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="topbar__title">Kết nối người thân</span>
+      <span class="topbar__spacer" aria-hidden="true"></span>
+    </header>
+
+    <div class="page-content">
+      <!-- Bước 1: đọc mã thiết bị -->
+      <section class="pair-step-card">
+        <div class="pair-step-card__badge">Bước 1</div>
+        <h2 class="pair-step-card__title">Đọc mã thiết bị cho người thân</h2>
+        <p class="pair-step-card__desc">Người thân mở app <strong>Healthcare Map</strong> → <strong>Thêm thiết bị</strong> → nhập mã dưới đây.</p>
+        <div class="device-status-card__id-row pair-step-card__id-row">
+          <span class="pair-step-card__id" id="pairing-device-id">000000000000</span>
+          <button type="button" class="device-status-card__copy-btn" id="btn-copy-pairing-id">Sao chép</button>
+        </div>
+      </section>
+
+      <!-- Bước 2: đọc mã OTP -->
+      <section class="pair-step-card">
+        <div class="pair-step-card__badge">Bước 2</div>
+        <h2 class="pair-step-card__title">Đọc mã OTP 6 số</h2>
+        <p class="pair-step-card__desc">Người thân sẽ được hỏi mã này ngay sau khi nhập mã thiết bị.</p>
+        <div class="otp-display" id="pairing-otp-code">000 000</div>
+        <p class="otp-display__countdown" id="pairing-otp-countdown">Mã đổi sau 5:00</p>
+        <button type="button" class="btn btn--secondary btn--block btn--sm" id="btn-rotate-otp">🔄 Tạo mã khác</button>
+      </section>
+
+      <!-- Nhật ký xử lý yêu cầu -->
+      <section class="settings-section">
+        <h2 class="settings-section__title">Nhật ký yêu cầu kết nối</h2>
+        <div class="pairing-log" id="pairing-log"></div>
+      </section>
+
+      <!-- Danh sách người thân đã kết nối -->
+      <section class="settings-section">
+        <h2 class="settings-section__title">Người thân đang theo dõi</h2>
+        <div class="contacts-list" id="pairing-guardians"></div>
+        <div class="empty-state" id="pairing-guardians-empty" hidden>
+          <div class="empty-state__icon">👥</div>
+          <p class="empty-state__text">Chưa có người thân nào kết nối.<br>Làm theo 2 bước phía trên để kết nối.</p>
+        </div>
+      </section>
+    </div>
+
+    <nav class="bottom-nav" data-nav-host aria-label="Điều hướng chính"></nav>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- TRANG: CẢNH BÁO TÉ NGÃ (full-screen, nền đỏ)                -->
+  <!-- ============================================================ -->
+  <main id="page-fall-alert" class="page" data-page="fallAlert">
+    <div class="fall-alert-shell">
+      <div class="fall-alert__countdown-ring">
+        <svg viewBox="0 0 120 120">
+          <circle class="countdown-ring-bg" cx="60" cy="60" r="54"/>
+          <circle class="countdown-ring-progress" id="countdown-ring-progress" cx="60" cy="60" r="54"
+            stroke-dasharray="339.292" stroke-dashoffset="0"/>
+        </svg>
+        <div class="fall-alert__countdown-number" id="alert-countdown">10</div>
+      </div>
+
+      <h1 class="fall-alert__title" id="alert-title">⚠️ Phát hiện té ngã</h1>
+      <p class="fall-alert__subtitle">Bạn có ổn không?<br>Cảnh báo sẽ được gửi tự động khi hết thời gian.</p>
+      <button type="button" class="fall-alert__cancel-btn" id="btn-cancel-alert">
+        ✅ Tôi ổn, huỷ cảnh báo
+      </button>
+
+      <div class="alert-contacts">
+        <div class="alert-contacts__title">Liên hệ khẩn cấp</div>
+        <div id="alert-contacts-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- TRANG: LỊCH SỬ CẢNH BÁO                                     -->
+  <!-- ============================================================ -->
+  <main id="page-history" class="page" data-page="history">
+    <header class="topbar">
+      <span class="topbar__title">Lịch sử cảnh báo</span>
+      <span class="topbar__spacer" aria-hidden="true"></span>
+    </header>
+
+    <div class="page-content">
+      <div id="history-list" class="history-list"></div>
+      <div id="history-empty" class="empty-state" hidden>
+        <div class="empty-state__icon">📋</div>
+        <p class="empty-state__text">Chưa có sự kiện nào được ghi nhận.<br>Hệ thống sẽ tự động lưu khi phát hiện té ngã.</p>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" data-nav-host aria-label="Điều hướng chính"></nav>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- TRANG: DANH BẠ KHẨN CẤP                                      -->
+  <!-- ============================================================ -->
+  <main id="page-contacts" class="page" data-page="contacts">
+    <header class="topbar">
+      <span class="topbar__title">Danh bạ khẩn cấp</span>
+      <span class="topbar__spacer" aria-hidden="true"></span>
+    </header>
+
+    <div class="page-content">
+      <p class="filter-bar">Tối đa 3 liên hệ — sẽ hiện trên màn hình cảnh báo</p>
+      <div id="contacts-list" class="contacts-list"></div>
+      <div id="contacts-empty" class="empty-state" hidden>
+        <div class="empty-state__icon">👥</div>
+        <p class="empty-state__text">Chưa có liên hệ khẩn cấp nào.<br>Thêm người thân để gọi nhanh khi té ngã.</p>
+      </div>
+      <button type="button" class="btn btn--primary btn--block" id="btn-add-contact">+ Thêm liên hệ</button>
+    </div>
+
+    <nav class="bottom-nav" data-nav-host aria-label="Điều hướng chính"></nav>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- TRANG: CÀI ĐẶT                                              -->
+  <!-- ============================================================ -->
+  <main id="page-settings" class="page" data-page="settings">
+    <header class="topbar">
+      <span class="topbar__title">Cài đặt</span>
+      <span class="topbar__spacer" aria-hidden="true"></span>
+    </header>
+
+    <div class="page-content">
+      <section class="settings-section">
+        <h2 class="settings-section__title">Tài khoản</h2>
+        <div class="settings-row">
+          <span class="settings-row__label">Email đăng nhập</span>
+          <span class="settings-row__value" id="settings-account-email">—</span>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section__title">Hồ sơ</h2>
+        <div class="field">
+          <label for="settings-name-input">Tên người dùng</label>
+          <div class="settings-name-row">
+            <input type="text" id="settings-name-input" placeholder="Tên của bạn">
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-row__label">Mã thiết bị</span>
+          <span class="settings-row__value" id="settings-device-id">000000000000</span>
+        </div>
+        <button type="button" class="btn btn--secondary btn--sm btn--block" id="btn-copy-settings-id">📋 Sao chép mã thiết bị</button>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section__title">Phát hiện té ngã bằng AI</h2>
+        <p>Ứng dụng cảnh báo khi AI nhận thấy nguy cơ té ngã qua hai lần kiểm tra liên tiếp.</p>
+        <p>Đeo cố định ở vùng thắt lưng. Cầm tay hoặc bỏ túi có thể làm kết quả thay đổi.</p>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section__title">Thời gian đếm ngược huỷ báo động</h2>
+        <div class="btn-group">
+          <button type="button" class="countdown-btn" data-countdown="5">5 giây</button>
+          <button type="button" class="countdown-btn countdown-btn--active" data-countdown="10">10 giây</button>
+          <button type="button" class="countdown-btn" data-countdown="15">15 giây</button>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section__title">Cảnh báo</h2>
+        <div class="settings-row">
+          <span class="settings-row__label">Gửi kèm vị trí GPS khi cảnh báo</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-gps-alert" checked>
+            <span class="switch__track"><span class="switch__thumb"></span></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <span class="settings-row__label">Hú còi khi phát hiện té ngã</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-alarm-sound" checked>
+            <span class="switch__track"><span class="switch__thumb"></span></span>
+          </label>
+        </div>
+        <button type="button" class="btn btn--secondary btn--sm btn--block" id="btn-test-alarm">🔊 Nghe thử tiếng</button>
+        <p class="settings-hint">
+          Tắt tiếng chỉ làm máy im lặng — cảnh báo vẫn được gửi tới người thân như thường.
+        </p>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section__title">Chạy nền khi tắt màn hình</h2>
+        <p class="settings-hint" style="margin-top:0;">
+          Bản APK dùng dịch vụ nền của Android nên vẫn dò được té ngã khi màn hình đã tắt.
+          Một số dòng máy (Xiaomi, Oppo, Samsung…) tự tắt dịch vụ nền để tiết kiệm pin —
+          bấm nút dưới đây và chọn <strong>Cho phép</strong> để app chạy ổn định.
+        </p>
+        <button type="button" class="btn btn--secondary btn--sm btn--block" id="btn-battery-exemption">
+          🔋 Miễn trừ tiết kiệm pin
+        </button>
+      </section>
+
+      <button type="button" class="btn btn--danger-outline btn--block" id="btn-logout">Đăng xuất</button>
+    </div>
+
+    <nav class="bottom-nav" data-nav-host aria-label="Điều hướng chính"></nav>
+  </main>
+
+</div><!-- /app-shell -->
+
+<!-- ============================================================ -->
+<!-- MODAL: FORM THÊM/SỬA LIÊN HỆ KHẨN CẤP                        -->
+<!-- ============================================================ -->
+<div id="contact-form-overlay" class="modal-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
+    <button type="button" class="modal__close" id="btn-close-contact-form" aria-label="Đóng">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6F88" stroke-width="2"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+    </button>
+    <h2 id="contact-form-title" class="modal__title">Thêm liên hệ khẩn cấp</h2>
+
+    <div class="field">
+      <label for="contact-name-input">Tên</label>
+      <input type="text" id="contact-name-input" placeholder="VD: Nguyễn Thị B">
+    </div>
+    <div class="field">
+      <label for="contact-phone-input">Số điện thoại</label>
+      <input type="tel" id="contact-phone-input" placeholder="VD: 0901234567">
+    </div>
+    <div class="field">
+      <label for="contact-relation-input">Mối quan hệ</label>
+      <input type="text" id="contact-relation-input" placeholder="VD: Con gái, Hàng xóm...">
+    </div>
+
+    <div class="modal__footer">
+      <button type="button" class="btn btn--ghost" id="btn-cancel-contact">Huỷ</button>
+      <button type="button" class="btn btn--primary" id="btn-save-contact">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST THÔNG BÁO -->
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

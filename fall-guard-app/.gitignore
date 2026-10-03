@@ -1,0 +1,7 @@
+# This app contains custom native code and hand-written web UI.
+!android/
+!www/
+www/app.js
+www/app.js.map
+artifacts/
+build/

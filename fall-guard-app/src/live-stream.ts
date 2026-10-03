@@ -34,6 +34,22 @@ import {
 } from 'firebase/database';
 import { rtdb } from './firebase';
 import type { SensorSample } from './types';
+import type { AiDiagnostics } from './native';
+
+let aiWritePending = false;
+let streamReady = false;
+let streamGeneration = 0;
+
+/** Latest native snapshot only; no diagnostic histories or extra personal data. */
+export async function publishAiDiagnostics(value: AiDiagnostics): Promise<void> {
+  if (!rtdb || !deviceId || !streaming || !streamReady || aiWritePending) return;
+  const generation = streamGeneration;
+  aiWritePending = true;
+  try {
+    await set(ref(rtdb, `live/${deviceId}/ai`), { ...value, updatedAt: serverTimestamp() });
+  } catch (error) { console.warn('Không gửi được chẩn đoán AI:', (error as Error).message); }
+  finally { if (generation === streamGeneration) aiWritePending = false; }
+}
 
 /** Tần số mẫu của luồng phát. 25 Hz đủ mịn để nhìn cú va đập khi té ngã. */
 export const STREAM_HZ = 25;
@@ -73,6 +89,9 @@ export async function startLiveStream(
   if (!rtdb) return;
 
   deviceId = targetDeviceId;
+  const generation = ++streamGeneration;
+  streamReady = false;
+  aiWritePending = false;
   streaming = true;
   pending = [];
   lastAcceptedAt = 0;
@@ -83,14 +102,15 @@ export async function startLiveStream(
     viewers[uid] = true;
   });
 
-  await set(ref(rtdb, `live/${targetDeviceId}/meta`), {
+  await update(ref(rtdb, `live/${targetDeviceId}`), { ai: null, meta: {
     ownerUid,
     viewers,
     name,
     streaming: true,
     hz: STREAM_HZ,
     updatedAt: serverTimestamp(),
-  });
+  } });
+  if (generation === streamGeneration && streaming) streamReady = true;
 }
 
 /** Cập nhật danh sách người thân được xem, gọi mỗi khi guardianUids đổi */
@@ -113,6 +133,9 @@ export async function updateStreamViewers(
 
 /** Dừng phát. Giữ lại dữ liệu cũ để người xem còn cuộn lại được một lúc. */
 export async function stopLiveStream(): Promise<void> {
+  ++streamGeneration;
+  streamReady = false;
+  aiWritePending = false;
   if (!rtdb || !deviceId) {
     streaming = false;
     return;

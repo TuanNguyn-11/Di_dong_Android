@@ -1,5 +1,5 @@
 // ============================================================
-// app.ts — Điều hướng, xác thực, cảm biến, AI mock & đồng bộ Firestore
+// app.ts — Điều hướng, xác thực, cảm biến, AI native & đồng bộ Firestore
 // Fall Guard — Phát hiện té ngã dành cho người có nguy cơ
 // ============================================================
 
@@ -42,7 +42,6 @@ import {
   isNativePlatform,
   readBatteryLevel,
   requestBatteryExemption,
-  setNativeThreshold,
   startNativeMonitor,
   watchLocation,
   type GeoWatchHandle,
@@ -51,6 +50,7 @@ import {
 } from './native';
 import {
   feedSample,
+  publishAiDiagnostics,
   isLiveStreamAvailable,
   startLiveStream,
   stopLiveStream,
@@ -68,13 +68,11 @@ import type {
   AppSettings,
   DeviceDoc,
   EmergencyContact,
-  FallAiResult,
   FallEvent,
   LinkedGuardian,
   PageName,
   SensorSample,
   SensorStatus,
-  SensorWindow,
   UserProfile,
 } from './types';
 
@@ -82,6 +80,9 @@ import type {
 // STATE — dữ liệu ứng dụng
 // ------------------------------------------------------------
 
+let currentFallSource: 'sensor' | 'demo' = 'demo';
+let monitorGeneration = 0;
+let monitorStarting = false;
 let currentUser: User | null = null;
 let userProfile: UserProfile | null = null;
 let deviceDoc: DeviceDoc | null = null;
@@ -122,6 +123,7 @@ let nativeMonitor: NativeMonitorHandle | null = null;
 let heartbeatIntervalId: number | null = null;
 let otpTickIntervalId: number | null = null;
 let countdownRemaining = 0;
+let countdownDeadline = 0;
 let currentFallConfidence = 0;
 
 // Huỷ đăng ký các luồng realtime khi đăng xuất
@@ -132,55 +134,6 @@ let unsubscribeRequests: (() => void) | null = null;
 // Các yêu cầu ghép cặp đang được xử lý — tránh xử lý trùng
 const handlingRequests = new Set<string>();
 let pairingLog: string[] = [];
-
-// Ngưỡng phát hiện sơ bộ theo độ nhạy (m/s², gia tốc tổng hợp)
-/** Gia tốc trọng trường, m/s². Dùng để quy đổi giữa m/s² và g. */
-const G = 9.81;
-
-/**
- * Ngưỡng phát hiện va đập, tính bằng **g²** — tức bình phương biên độ gia tốc
- * tổng hợp đã chuẩn hoá theo trọng lực.
- *
- * Vì sao so sánh bình phương thay vì lấy căn:
- *   |a| > T   hoàn toàn tương đương   |a|² > T²   (cả hai vế đều dương)
- * nên bỏ được phép căn bậc hai ở mỗi mẫu. Với 50 mẫu/giây chạy liên tục dưới nền
- * thì đây là phép tối ưu đáng giá, lại đúng cách các bài báo về phát hiện té ngã
- * hay trình bày ngưỡng (đơn vị g²).
- *
- * Quy đổi:  T(g) = √(T(g²))        T(m/s²) = T(g) × 9.81
- *   Thấp  4.00 g²  →  2.0 g  ≈ 19.6 m/s²
- *   Vừa   2.56 g²  →  1.6 g  ≈ 15.7 m/s²
- *   Cao   1.96 g²  →  1.4 g  ≈ 13.7 m/s²
- */
-const SENSITIVITY_THRESHOLDS_G2: Record<string, number> = {
-  low: 4.0,
-  medium: 2.56,
-  high: 1.96,
-};
-
-/** Ngưỡng mặc định khi giá trị độ nhạy không hợp lệ */
-const DEFAULT_THRESHOLD_G2 = 2.56;
-
-/**
- * Mốc "va đập mạnh" dùng để quy đổi độ tin cậy: 3 g → 9 g².
- * Chỉ là mốc tham chiếu để hiển thị, không tham gia quyết định có té ngã hay không.
- */
-const SEVERE_IMPACT_G2 = 9.0;
-
-/** Ngưỡng g² đang áp dụng theo độ nhạy người dùng chọn */
-function currentThresholdG2(): number {
-  return SENSITIVITY_THRESHOLDS_G2[appSettings.sensitivity] ?? DEFAULT_THRESHOLD_G2;
-}
-
-/** Bình phương biên độ gia tốc tổng hợp, tính bằng g²: (ax²+ay²+az²) / g² */
-function magnitudeSquaredG2(ax: number, ay: number, az: number): number {
-  return (ax * ax + ay * ay + az * az) / (G * G);
-}
-
-/** Quy đổi ngưỡng g² sang m/s² để gửi xuống dịch vụ nền native */
-function thresholdG2ToMs2(thresholdG2: number): number {
-  return Math.sqrt(thresholdG2) * G;
-}
 
 /** Nhịp đẩy trạng thái lên Firestore (ms). Healthcare Map coi > 90s là offline. */
 const HEARTBEAT_MS = 30_000;
@@ -422,10 +375,12 @@ function showPairing(): void {
   setActivePage('pairing');
 }
 
-function showFallAlert(confidence: number): void {
+function showFallAlert(confidence: number, source: 'sensor' | 'demo' = 'demo'): void {
   // Chốt chặn cuối: tắt giám sát thì tuyệt đối không có cảnh báo nào được phát.
   if (!appSettings.monitoringEnabled) return;
 
+  if (document.querySelector<HTMLElement>('.page--active')?.dataset.page === 'fallAlert') return;
+  currentFallSource = source;
   currentFallConfidence = confidence;
   renderFallAlert();
   setActivePage('fallAlert');
@@ -829,7 +784,9 @@ function initHomePage(): void {
  * Trên thiết bị có cảm biến thật: dùng DeviceMotionEvent + Geolocation.
  */
 function startMonitoring(): void {
-  if (monitoringIntervalId !== null) return;
+  if (monitoringIntervalId !== null || nativeMonitor || monitorStarting) return;
+  const generation = ++monitorGeneration;
+  monitorStarting = true;
 
   sensorStatus.accelerometer = 'active';
   sensorStatus.gyroscope = 'active';
@@ -852,12 +809,15 @@ function startMonitoring(): void {
   //   3. Mock sensor         — trên trình duyệt máy tính, để demo giao diện
   void startNativeMonitor(
     {
-      thresholdMs2: thresholdG2ToMs2(currentThresholdG2()),
       alarmMuted: appSettings.alarmMuted,
     },
     handleNativeBatch,
-    handleNativeFall
+    handleNativeFall,
+    (message) => { if (generation === monitorGeneration) handleMonitorError(message); },
+    (value) => { if (generation === monitorGeneration) void publishAiDiagnostics(value); }
   ).then((handle) => {
+    if (generation !== monitorGeneration || !appSettings.monitoringEnabled) { handle?.stop(); return; }
+    monitorStarting = false;
     if (handle) {
       nativeMonitor = handle;
       sensorStatus.accelerometer = 'active';
@@ -865,7 +825,11 @@ function startMonitoring(): void {
       renderHome();
       return;
     }
+    if (isNativePlatform()) { handleMonitorError('Không tìm thấy plugin AI Android.'); return; }
     startWebSensorFallback();
+    showToast('Trình duyệt chỉ mô phỏng cảm biến; AI chạy trong APK Android.');
+  }).catch((error: unknown) => {
+    if (generation === monitorGeneration) handleMonitorError(error instanceof Error ? error.message : String(error));
   });
 }
 
@@ -889,7 +853,7 @@ function startWebSensorFallback(): void {
 
 /** Trải một lô mẫu từ dịch vụ nền thành từng mẫu rồi đưa vào luồng xử lý chung */
 function handleNativeBatch(batch: SensorBatch): void {
-  const step = 1000 / (batch.hz || 50);
+  const step = 1000 / (batch.hz || 100);
   const count = Math.min(batch.ax.length, batch.ay.length, batch.az.length);
 
   for (let i = 0; i < count; i++) {
@@ -906,19 +870,27 @@ function handleNativeBatch(batch: SensorBatch): void {
 }
 
 /**
- * Phần Java đã dò thấy va đập vượt ngưỡng và đang hú còi.
+ * Phần Java đã xác nhận hai cửa sổ AI liên tiếp và đang cảnh báo.
  * Bên này chỉ còn việc hiện màn hình đếm ngược và lo phần Firestore.
  */
-function handleNativeFall(peakMs2: number): void {
-  if (!appSettings.monitoringEnabled) return;
+function handleNativeFall(probability: number): void {
+  if (!appSettings.monitoringEnabled || !Number.isFinite(probability)) return;
+  showFallAlert(Math.round(Math.max(0, Math.min(1, probability)) * 100), 'sensor');
+}
 
-  // Java gửi đỉnh theo m/s²; đổi sang g² rồi dùng CHUNG công thức với
-  // confirmFallWithAI để hai đường phát hiện không cho ra con số lệch nhau.
-  const peakG2 = (peakMs2 * peakMs2) / (G * G);
-  showFallAlert(Math.round(peakToConfidence(peakG2) * 100));
+function handleMonitorError(message: string): void {
+  appSettings.monitoringEnabled = false;
+  saveSettings();
+  stopMonitoring();
+  sensorStatus.accelerometer = 'error';
+  sensorStatus.gyroscope = 'error';
+  renderHome();
+  showToast(message);
 }
 
 function stopMonitoring(): void {
+  ++monitorGeneration;
+  monitorStarting = false;
   if (monitoringIntervalId !== null) {
     window.clearInterval(monitoringIntervalId);
     monitoringIntervalId = null;
@@ -986,7 +958,7 @@ function addSampleToBuffer(sample: SensorSample): void {
 
   sensorBuffer.push(sample);
   if (sensorBuffer.length > SENSOR_BUFFER_MAX) sensorBuffer.shift();
-  if (sensorBuffer.length >= 20) checkForFallCandidate();
+  // Native AI is the only detector; browser/mock samples are visualization only.
 }
 
 /**
@@ -1014,74 +986,6 @@ async function startGpsTracking(): Promise<void> {
       showToast(message);
     }
   );
-}
-
-// ------------------------------------------------------------
-// PHÁT HIỆN TÉ NGÃ — NGƯỠNG SƠ BỘ + AI XÁC NHẬN
-// ------------------------------------------------------------
-
-/** Kiểm tra buffer có "nghi ngờ té ngã" dựa trên ngưỡng gia tốc đơn giản */
-function checkForFallCandidate(): void {
-  // Đang hiện màn hình cảnh báo thì thôi dò tiếp. Nếu không, người dùng cựa
-  // quậy hay với tay lấy điện thoại sẽ tạo thêm đỉnh gia tốc, kích hoạt lại
-  // showFallAlert và đồng hồ đếm ngược nhảy về đầu — cảnh báo không bao giờ gửi đi.
-  if (document.querySelector<HTMLElement>('.page--active')?.dataset.page === 'fallAlert') return;
-
-  const thresholdG2 = currentThresholdG2();
-  const latest = sensorBuffer[sensorBuffer.length - 1];
-  const magnitudeG2 = magnitudeSquaredG2(latest.ax, latest.ay, latest.az);
-
-  if (magnitudeG2 > thresholdG2) {
-    const windowSamples = [...sensorBuffer];
-    const sensorWindow: SensorWindow = {
-      samples: windowSamples,
-      sampleRateHz: 20,
-      windowMs: windowSamples.length * 50,
-    };
-
-    // Tạm dừng kiểm tra để tránh kích hoạt liên tục
-    sensorBuffer = [];
-
-    void confirmFallWithAI(sensorWindow).then((result) => {
-      if (result.isFall) showFallAlert(Math.round(result.confidence * 100));
-    });
-  }
-}
-
-/**
- * MOCK — hàm giả lập xác nhận té ngã bằng AI.
- * TODO: Khi đồng đội bàn giao model (.pkl / .pt) đã huấn luyện xong, thay toàn
- * bộ nội dung hàm này bằng suy luận model thật. Hai hướng khả thi tuỳ framework
- * train (hỏi đồng đội):
- *   - Nếu train bằng Keras/TensorFlow → convert sang TensorFlow.js
- *     (`tensorflowjs_converter`), chạy on-device bằng @tensorflow/tfjs.
- *   - Nếu train bằng PyTorch → export sang ONNX (`torch.onnx.export`), chạy
- *     bằng onnxruntime-web.
- * Giữ nguyên chữ ký hàm bên dưới để không phải sửa chỗ gọi.
- */
-async function confirmFallWithAI(sensorWindow: SensorWindow): Promise<FallAiResult> {
-  // MOCK — tính biên độ đỉnh gia tốc trong cửa sổ, map sang độ tin cậy 0-1.
-  const peakG2 = Math.max(
-    ...sensorWindow.samples.map((s) => magnitudeSquaredG2(s.ax, s.ay, s.az))
-  );
-
-  // Ngưỡng ở checkForFallCandidate đã quyết định rồi, nên ở đây luôn đồng ý.
-  // Bản cũ đặt thêm một ngưỡng ngầm thứ hai ở đây, khiến mức "Cao" bị chính nó
-  // bác bỏ và hành xử y hệt mức "Vừa" — đã bỏ.
-  // Khi có model thật, chỗ này mới là nơi được phép trả về isFall = false.
-  return {
-    isFall: true,
-    confidence: peakToConfidence(peakG2),
-    source: 'mock',
-  };
-}
-
-/**
- * Quy đỉnh va đập (g²) sang độ tin cậy 0-1, lấy 3 g (= 9 g²) làm mốc 100%.
- * Chỉ dùng để lưu vào lịch sử, KHÔNG tham gia quyết định có cảnh báo hay không.
- */
-function peakToConfidence(peakG2: number): number {
-  return Math.min(1, Math.max(0, peakG2 / SEVERE_IMPACT_G2));
 }
 
 // ------------------------------------------------------------
@@ -1119,10 +1023,11 @@ function startCountdown(): void {
   const countdownEl = $<HTMLSpanElement>('alert-countdown');
   const countdownRing = document.getElementById('countdown-ring-progress') as SVGCircleElement | null;
   const totalSeconds = appSettings.cancelCountdownSec;
+  countdownDeadline = Date.now() + totalSeconds * 1000;
   const circumference = 2 * Math.PI * 54; // radius=54
 
   countdownIntervalId = window.setInterval(() => {
-    countdownRemaining--;
+    countdownRemaining = Math.max(0, Math.ceil((countdownDeadline - Date.now()) / 1000));
     countdownEl.textContent = countdownRemaining.toString();
 
     if (countdownRing) {
@@ -1142,17 +1047,19 @@ function startCountdown(): void {
  * Ghi sự kiện té ngã lên Firestore; nếu lỗi mạng vẫn báo cho người dùng biết.
  * Chỉ được gọi khi cảnh báo thật sự gửi đi — báo động giả không ghi gì cả.
  */
-async function recordFallEvent(): Promise<void> {
-  if (!userProfile) return;
+async function recordFallEvent(): Promise<boolean> {
+  if (!userProfile) return false;
   try {
     await pushFallEvent(userProfile.deviceId, {
       confidence: currentFallConfidence,
       lat: appSettings.includeGpsInAlert && currentLatitude !== null ? currentLatitude : 0,
       lng: appSettings.includeGpsInAlert && currentLongitude !== null ? currentLongitude : 0,
-      source: 'demo',
+      source: currentFallSource,
     });
+    return true;
   } catch (error) {
     showToast('Không gửi được lên máy chủ: ' + describeAuthError(error));
+    return false;
   }
 }
 
@@ -1172,7 +1079,11 @@ function cancelAlert(): void {
 
 async function onAlertExpired(): Promise<void> {
   stopAlarm();
-  await recordFallEvent();
+  const sent = await recordFallEvent();
+  if (!sent) {
+    $<HTMLHeadingElement>('alert-title').textContent = 'Chưa gửi được cảnh báo — kiểm tra kết nối mạng';
+    return;
+  }
   showToast('Đã gửi cảnh báo tới người thân');
 
   const alertTitle = $<HTMLHeadingElement>('alert-title');
@@ -1537,10 +1448,6 @@ function renderSettings(): void {
   $<HTMLSpanElement>('settings-device-id').textContent = userProfile.deviceId;
   $<HTMLSpanElement>('settings-account-email').textContent = userProfile.email;
 
-  document.querySelectorAll<HTMLButtonElement>('.sensitivity-btn').forEach((btn) => {
-    btn.classList.toggle('sensitivity-btn--active', btn.dataset.sensitivity === appSettings.sensitivity);
-  });
-
   document.querySelectorAll<HTMLButtonElement>('.countdown-btn').forEach((btn) => {
     btn.classList.toggle(
       'countdown-btn--active',
@@ -1569,16 +1476,6 @@ function initSettingsPage(): void {
 
   $<HTMLButtonElement>('btn-copy-settings-id').addEventListener('click', () => {
     if (userProfile) copyToClipboard(userProfile.deviceId, 'Đã sao chép mã thiết bị');
-  });
-
-  document.querySelectorAll<HTMLButtonElement>('.sensitivity-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      appSettings.sensitivity = btn.dataset.sensitivity as AppSettings['sensitivity'];
-      saveSettings();
-      setNativeThreshold(thresholdG2ToMs2(currentThresholdG2()));
-      renderSettings();
-      showToast(`Độ nhạy: ${btn.textContent}`);
-    });
   });
 
   document.querySelectorAll<HTMLButtonElement>('.countdown-btn').forEach((btn) => {

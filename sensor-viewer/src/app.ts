@@ -21,6 +21,9 @@ import {
   type ViewableDevice,
 } from './stream';
 import { ACCEL_CHANNELS, GYRO_CHANNELS, drawChart } from './chart';
+import { updateDiagnostics, renderDiagnostics, exportDiagnostics, setDiagnosticClockOffset, type AiSnapshot } from './diagnostics';
+let ai: AiSnapshot | null = null;
+let aiError = '';
 
 // ------------------------------------------------------------
 // STATE
@@ -146,6 +149,9 @@ function selectDevice(deviceId: string): void {
   streamHandle = null;
   samples = [];
   meta = null;
+  ai = null;
+  aiError = '';
+  updateDiagnostics(null, false);
   selectedDeviceId = deviceId;
   $<HTMLSelectElement>('device-select').value = deviceId;
   $<HTMLSpanElement>('device-id-label').textContent = deviceId;
@@ -153,12 +159,16 @@ function selectDevice(deviceId: string): void {
   streamHandle = subscribeStream(deviceId, {
     onMeta: (value) => {
       meta = value;
+      updateDiagnostics(ai, meta?.streaming === true, aiError);
       renderStatus();
     },
     onSamples: (batch) => {
       appendSamples(batch);
     },
     onError: (message) => showToast(message),
+    onAi: (value) => { ai = value; aiError = ''; updateDiagnostics(ai, meta?.streaming === true); },
+    onAiError: (message) => { aiError = message; updateDiagnostics(ai, meta?.streaming === true, message); },
+    onClockOffset: setDiagnosticClockOffset,
   });
 
   renderStatus();
@@ -242,6 +252,20 @@ function renderFrame(): void {
 // ------------------------------------------------------------
 
 function initControls(): void {
+  document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      const diagnostics = button.dataset.view === 'ai';
+      $('ai-panel').hidden = !diagnostics;
+      $('wave-panel').hidden = diagnostics;
+      document.querySelectorAll<HTMLElement>('.toolbar__group:not(:first-child)').forEach(group => group.hidden = diagnostics);
+      document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(b => {
+        b.setAttribute('aria-pressed', String(b === button)); b.classList.toggle('chip--active', b === button);
+      });
+      renderDiagnostics();
+    });
+  });
+  $('ai-export').addEventListener('click', () => exportDiagnostics(selectedDeviceId));
+  window.setInterval(() => { if (currentUser) { renderDiagnostics(); renderStatus(); } }, 1000);
   $<HTMLSelectElement>('device-select').addEventListener('change', (e) => {
     const value = (e.target as HTMLSelectElement).value;
     if (value) selectDevice(value);
@@ -353,6 +377,7 @@ function initApp(): void {
       selectedDeviceId = null;
       samples = [];
       meta = null;
+      ai = null; aiError = ''; updateDiagnostics(null, false);
       if (animationId !== 0) {
         window.cancelAnimationFrame(animationId);
         animationId = 0;

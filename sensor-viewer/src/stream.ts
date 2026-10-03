@@ -16,6 +16,7 @@ import {
   type Unsubscribe,
 } from 'firebase/database';
 import { db, rtdb } from './firebase';
+import { parseAiSnapshot, type AiSnapshot } from './diagnostics';
 
 /** Một gói dữ liệu đúng như app Fall Guard đã ghi lên */
 interface ChunkDoc {
@@ -106,6 +107,9 @@ export function subscribeStream(
   handlers: {
     onMeta: (meta: StreamMeta | null) => void;
     onSamples: (samples: Sample[]) => void;
+    onAi: (value: AiSnapshot | null) => void;
+    onAiError: (message: string) => void;
+    onClockOffset: (offset: number) => void;
     onError: (message: string) => void;
   }
 ): StreamHandle {
@@ -117,6 +121,13 @@ export function subscribeStream(
   }
 
   const database = rtdb;
+  const unsubAi = onValue(ref(database, `live/${deviceId}/ai`), snapshot => {
+    const raw = snapshot.val();
+    const parsed = parseAiSnapshot(raw);
+    handlers.onAi(parsed);
+    if (raw !== null && !parsed) handlers.onAiError('Dữ liệu chẩn đoán không hợp lệ hoặc APK chưa tương thích.');
+  }, () => handlers.onAiError('Không đọc được chẩn đoán AI. Kiểm tra kết nối và quyền truy cập thiết bị.'));
+  const unsubClock = onValue(ref(database, '.info/serverTimeOffset'), s => handlers.onClockOffset(Number(s.val()) || 0));
   const metaRef = ref(database, `live/${deviceId}/meta`);
   // Chỉ lấy ~60 gói gần nhất — đúng bằng lượng mà app Fall Guard giữ lại.
   const chunksQuery = query(ref(database, `live/${deviceId}/chunks`), limitToLast(60));
@@ -159,6 +170,8 @@ export function subscribeStream(
   return {
     stop: () => {
       unsubMeta();
+      unsubAi();
+      unsubClock();
       unsubChunks();
       off(metaRef);
     },

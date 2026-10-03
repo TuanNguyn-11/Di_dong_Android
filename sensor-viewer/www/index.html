@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sensor Viewer — Dạng sóng cảm biến Fall Guard</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="config-warning" class="config-warning" hidden></div>
+
+<!-- ============================================================ -->
+<!-- MÀN HÌNH ĐĂNG NHẬP                                           -->
+<!-- ============================================================ -->
+<main id="screen-login" class="login-screen">
+  <form id="login-form" class="login-card" novalidate>
+    <div class="login-card__brand">
+      <div class="login-card__wave" aria-hidden="true">
+        <svg viewBox="0 0 64 28" width="64" height="28" fill="none" stroke="#1976D2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 14 L10 14 L14 4 L20 24 L26 9 L31 14 L62 14"/>
+        </svg>
+      </div>
+      <h1>Sensor Viewer</h1>
+      <p>Xem dạng sóng gia tốc kế &amp; con quay hồi chuyển theo thời gian thực</p>
+    </div>
+
+    <label for="login-email">Email</label>
+    <input type="email" id="login-email" placeholder="vidu@gmail.com" autocomplete="username" required>
+
+    <label for="login-password">Mật khẩu</label>
+    <input type="password" id="login-password" placeholder="Mật khẩu" autocomplete="current-password" required>
+
+    <button type="submit" class="btn btn--primary" id="login-submit">Đăng nhập</button>
+    <p class="login-card__error" id="login-error" role="alert"></p>
+
+    <p class="login-card__hint">
+      Dùng chung tài khoản với hai app điện thoại. Đăng nhập bằng tài khoản
+      <strong>Fall Guard</strong> để xem máy của mình, hoặc tài khoản
+      <strong>người thân</strong> để xem các máy đã ghép cặp.
+    </p>
+  </form>
+</main>
+
+<!-- ============================================================ -->
+<!-- MÀN HÌNH XEM SÓNG                                            -->
+<!-- ============================================================ -->
+<main id="screen-viewer" class="viewer" hidden>
+
+  <header class="topbar">
+    <div class="topbar__left">
+      <span class="topbar__title">Sensor Viewer</span>
+      <span class="status">
+        <span class="status-dot status-dot--off" id="status-dot"></span>
+        <span id="status-text">Đang kết nối...</span>
+      </span>
+    </div>
+    <div class="topbar__right">
+      <span class="topbar__email" id="account-email"></span>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-logout">Đăng xuất</button>
+    </div>
+  </header>
+
+  <nav class="view-nav" aria-label="Chế độ xem">
+    <button class="chip chip--active" type="button" data-view="wave" aria-pressed="true" aria-controls="wave-panel">Dạng sóng cảm biến</button>
+    <button class="chip" type="button" data-view="ai" aria-pressed="false" aria-controls="ai-panel">Chẩn đoán AI</button>
+  </nav>
+  <section class="toolbar">
+    <div class="toolbar__group">
+      <label for="device-select">Thiết bị</label>
+      <select id="device-select"></select>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-reload-devices" title="Tải lại danh sách">⟳</button>
+      <span class="toolbar__mono" id="device-id-label">—</span>
+    </div>
+
+    <div class="toolbar__group">
+      <label>Cửa sổ</label>
+      <button type="button" class="chip" data-window="5">5s</button>
+      <button type="button" class="chip chip--active" data-window="10">10s</button>
+      <button type="button" class="chip" data-window="30">30s</button>
+      <button type="button" class="chip" data-window="60">60s</button>
+    </div>
+
+    <div class="toolbar__group toolbar__group--channels">
+      <label>Kênh</label>
+      <label class="chan chan--ax"><input type="checkbox" data-channel="ax" checked>ax</label>
+      <label class="chan chan--ay"><input type="checkbox" data-channel="ay" checked>ay</label>
+      <label class="chan chan--az"><input type="checkbox" data-channel="az" checked>az</label>
+      <label class="chan chan--gx"><input type="checkbox" data-channel="gx" checked>gx</label>
+      <label class="chan chan--gy"><input type="checkbox" data-channel="gy" checked>gy</label>
+      <label class="chan chan--gz"><input type="checkbox" data-channel="gz" checked>gz</label>
+    </div>
+
+    <div class="toolbar__group toolbar__group--actions">
+      <button type="button" class="btn btn--secondary btn--sm" id="btn-pause">⏸ Tạm dừng</button>
+      <button type="button" class="btn btn--primary btn--sm" id="btn-export">⬇ Xuất CSV</button>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-clear">Xoá bộ đệm</button>
+      <span class="toolbar__mono" id="sample-count">0 mẫu</span>
+    </div>
+  </section>
+
+  <section id="ai-panel" class="ai-panel" aria-labelledby="ai-heading" hidden>
+    <div class="ai-heading"><div><h1 id="ai-heading">Chẩn đoán AI</h1><p>Quan sát model đang chạy trên điện thoại đã chọn.</p></div>
+      <button type="button" id="ai-export" class="btn btn--secondary btn--sm" disabled>Xuất bằng chứng JSON</button></div>
+    <p id="ai-status" class="ai-status" role="status" data-state="empty">Chưa có dữ liệu AI</p>
+    <div class="ai-grid">
+      <article class="ai-card"><h2>Số lần suy luận</h2><strong id="ai-count">—</strong><p>Tăng sau mỗi lần model chạy xong. Đếm lại khi bắt đầu phiên mới.</p></article>
+      <article class="ai-card"><h2>Thời gian suy luận gần nhất</h2><strong id="ai-latency">—</strong><p>Thời gian xử lý trên điện thoại, không bao gồm truyền mạng.</p></article>
+      <article class="ai-card"><h2>Xác suất té ngã gần nhất</h2><strong id="ai-probability">—</strong><meter id="ai-meter" min="0" max="1" value="0" aria-label="Xác suất té ngã" hidden></meter><p>Ngưỡng 70% trong 2 cửa sổ liên tiếp mới tạo ứng viên cảnh báo.</p></article>
+      <article class="ai-card"><h2>Mẫu chuẩn khớp Python</h2><strong id="ai-golden">—</strong><p>Kiểm tra số học lúc khởi động. Không phải độ chính xác phát hiện té ngã.</p></article>
+    </div>
+    <section class="ai-details" aria-label="Thông tin model">
+      <dl><dt>Model trên điện thoại</dt><dd id="ai-model">—</dd><dt>SHA-256</dt><dd id="ai-sha">—</dd><dt>Phiên giám sát</dt><dd id="ai-session">—</dd><dt>Cập nhật máy chủ</dt><dd id="ai-updated">Chưa nhận dữ liệu</dd></dl>
+      <p>Model INT8 · 6 trục · cửa sổ 50 mẫu ở 100 Hz · bước 10 mẫu. Dạng sóng web được hạ xuống 25 Hz để tiết kiệm dữ liệu.</p>
+    </section>
+    <p class="ai-note">Số liệu cập nhật khoảng mỗi giây khi app truyền được dữ liệu. Web có thể ngừng nhận cập nhật khi mất mạng hoặc WebView bị tạm dừng, dù AI native vẫn chạy. Muốn xem dữ liệu, cài APK có chẩn đoán và bật giám sát trên điện thoại.</p>
+  </section>
+  <section class="charts" id="wave-panel">
+    <div class="chart-box">
+      <canvas id="chart-accel"></canvas>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-gyro"></canvas>
+    </div>
+  </section>
+
+  <footer class="hintbar">
+    Muốn thấy sóng chạy: mở app <strong>Fall Guard</strong> trên điện thoại và bật
+    <strong>“Giám sát cảm biến”</strong>. Dữ liệu chỉ được phát khi công tắc đó đang bật.
+  </footer>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

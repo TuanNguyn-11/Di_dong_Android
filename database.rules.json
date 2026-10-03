@@ -39,6 +39,24 @@
           "$other": { ".validate": false }
         },
 
+        "ai": {
+          ".validate": "newData.hasChildren(['schemaVersion','source','running','sessionId','inferenceCount','updatedAt'])",
+          "schemaVersion": { ".validate": "newData.val() === 1" },
+          "source": { ".validate": "newData.val() === 'native-litert'" },
+          "available": { ".validate": "newData.isBoolean()" },
+          "running": { ".validate": "newData.isBoolean()" },
+          "modelName": { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "modelSha256": { ".validate": "newData.isString() && newData.val().length === 64" },
+          "sessionId": { ".validate": "newData.isString() && newData.val().length <= 64" },
+          "inferenceCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "lastInferenceMicros": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "probability": { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 1" },
+          "inferenceAgeMs": { ".validate": "newData.isNumber() && newData.val() >= -1" },
+          "goldenPassed": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10" },
+          "updatedAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        },
+
         "chunks": {
           "$chunkId": {
             "t0": { ".validate": "newData.isNumber()" },

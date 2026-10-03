@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fall Guard</string>
+    <string name="title_activity_main">Fall Guard</string>
+    <string name="package_name">com.fallguard.monitor</string>
+    <string name="custom_url_scheme">com.fallguard.monitor</string>
+</resources>

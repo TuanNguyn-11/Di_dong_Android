@@ -1,0 +1,55 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.2'
+        classpath 'com.google.gms:google-services:4.4.2'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// ============================================================
+// Ep moi module bien dich o muc Java 17
+// ============================================================
+// Capacitor 7 mac dinh doi JDK 21. May dang cai JDK 17 nen build se bao
+// "invalid source release: 21". Khoi duoi day ha muc bien dich xuong 17 cho
+// TAT CA module, nho vay build duoc APK ma khong phai cai them JDK.
+//
+// Da kiem chung: ca capacitor-android lan ma nguon cua du an deu bien dich sach
+// o muc 17. Neu sau nay ban cai JDK 21 thi co the xoa ca khoi nay di.
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        project.tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = '17'
+            targetCompatibility = '17'
+        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

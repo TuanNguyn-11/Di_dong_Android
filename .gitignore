@@ -32,3 +32,16 @@ ios/
 platforms/
 plugins/
 www/
+
+# Local verification outputs, signing credentials and Firebase CLI state
+artifacts/
+.firebase/
+*.jks
+*.keystore
+keystore.properties
+*.p12
+*.pfx
+service-account*.json
+*firebase-adminsdk*.json
+*.apk
+*.aab

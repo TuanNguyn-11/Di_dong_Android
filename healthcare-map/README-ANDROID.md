@@ -2,7 +2,7 @@
 
 Ứng dụng web `healthcare-map` (TypeScript thuần) đã được bọc bằng **Capacitor** để chạy
 như một app Android thật. Toàn bộ mã nguồn ứng dụng vẫn viết bằng **TypeScript** — thư mục
-`android/` chỉ là vỏ native do Capacitor sinh ra, không phải mã bạn phải viết.
+`android/` chứa project Capacitor và plugin Java tùy chỉnh cho âm thanh cảnh báo.
 
 > ⚠️ **Làm trước tiên:** app không chạy được nếu chưa cấu hình Firebase.
 > Xem [`../FIREBASE-SETUP.md`](../FIREBASE-SETUP.md) và điền `src/firebase-config.ts`.
@@ -56,9 +56,9 @@ rồi mở <http://localhost:5173>.
 
 | Phần mềm | Ghi chú |
 |---|---|
-| Node.js 18+ | để chạy `tsc` và Capacitor CLI |
+| Node.js 20+ | để chạy `tsc` và Capacitor CLI |
 | Android Studio | đã cài, kèm Android SDK Platform 35 và Build-Tools |
-| JDK 17 | Android Studio đã kèm sẵn (Embedded JDK) |
+| JDK 21 | chọn trong Gradle JDK của Android Studio |
 
 Lần đầu, nếu thư mục `node_modules` chưa có:
 
@@ -111,9 +111,9 @@ gradlew.bat assembleRelease
 
 Kết quả: `android/app/build/outputs/apk/release/app-release.apk`
 
-Project đã có sẵn keystore ký release tại `android/app/healthcare-map-release.jks`
-(mật khẩu nằm trong `android/keystore.properties`). Hãy **giữ kỹ hai file này** — nếu mất,
-bạn sẽ không thể phát hành bản cập nhật đè lên bản cũ.
+Keystore và `android/keystore.properties` là cấu hình riêng, không được đưa vào repo.
+Khi clone mới, dùng bản debug để kiểm thử hoặc tạo keystore riêng để ký release.
+Hãy lưu giữ keystore và mật khẩu để có thể phát hành bản cập nhật cho cùng ứng dụng.
 
 ---
 
