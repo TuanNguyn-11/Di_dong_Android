@@ -3,7 +3,7 @@
 ## Mở màn hình
 
 ```powershell
-cd C:\DDisk\HK_I_nam4_dot_1\Di_dong\web\sensor-viewer
+cd sensor-viewer
 npm run build
 npm run serve
 ```
@@ -40,32 +40,24 @@ App gửi tối đa một snapshot mỗi giây, ghi đè bản gần nhất. Kh�
 liên tục, không gửi vị trí, tài khoản hay token trong telemetry này. Chỉ chủ máy
 được ghi; chủ máy/người thân đã được cấp quyền xem luồng mới đọc được.
 
-Đã bổ sung và triển khai nhánh kiểm tra `ai` trong Realtime Database của project
-`fall-guard-gps` ngày 03/10/2026. Đã đối chiếu rules đang triển khai trước khi sửa;
-không thay quyền đọc/ghi hiện có. Config riêng cho deploy rules:
+Nhánh `ai` cần rules trong `database.rules.json`. Từ thư mục `sensor-viewer`,
+triển khai rules cho Firebase project của bạn bằng config riêng:
 
 ```powershell
 cd ..
-firebase deploy --only database --config firebase-diagnostics.json --project fall-guard-gps
+firebase deploy --only database --config firebase-diagnostics.json --project YOUR_PROJECT_ID
 ```
 
-## Kiểm tra đã thực hiện
+## Kiểm thử
 
-- Build/typecheck cả Sensor Viewer và Fall Guard.
-- 7 bài test trạng thái: `node --test tests/diagnostics.test.mjs`.
-- Build APK Android và unit test thành công.
-- Kiểm tra giao diện bằng Edge headless với fixture được ghi rõ là dữ liệu kiểm thử;
-  ảnh lưu ở `artifacts/ai-desktop.png`, `artifacts/ai-mobile.png`.
-- Đã kiểm tra xuyên suốt trên CPH2363 / Android 14 ngày 03/10/2026:
-  APK mới gửi telemetry lên Firebase; bộ đếm tăng từ 196 lên 626 trong cùng phiên,
-  golden đạt 10/10. Người dùng xác nhận Sensor Viewer hiển thị dữ liệu và bộ đếm tăng.
+Trong thư mục `sensor-viewer`, chạy `npm run build` và
+`node --test tests/diagnostics.test.mjs` để kiểm tra trạng thái chẩn đoán.
 
 ## Nếu điện thoại báo chuông nhưng web chưa có dữ liệu
 
-Chuông native có thể hoạt động với APK cũ chưa gửi chẩn đoán. Trong lần xử lý thực
-tế, APK đang cài thiếu các trường `schemaVersion`, `probability`, `sessionId` trong
-kết quả plugin; nhánh Firebase `ai` là null. Sau khi cài đè đúng APK có SHA-256
-`9c74979c364220d3032a769ec84053f6579ee3a4cf7b13bb9e4c00ca8075753b`, dữ liệu đã xuất hiện.
+Chuông native có thể hoạt động với APK cũ chưa gửi chẩn đoán. Kiểm tra kết quả
+plugin có các trường `schemaVersion`, `probability`, `sessionId` và nhánh Firebase
+`live/{deviceId}/ai` có dữ liệu.
 
 Kiểm tra đúng mã thiết bị trên web, cài APK tại đường dẫn bàn giao rồi bật lại giám
 sát. Không cần tạo một lần té để thử: bộ đếm phải tăng ngay cả khi điện thoại nằm yên.

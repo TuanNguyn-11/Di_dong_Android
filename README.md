@@ -161,10 +161,9 @@ node --test tests/diagnostics.test.mjs
 Instrumentation trên thiết bị test: `:app:connectedDebugAndroidTest`. Gradle có thể
 gỡ app sau bài test; sử dụng máy ảo hoặc điện thoại test không có dữ liệu cần giữ.
 
-Đã kiểm tra trên CPH2363, Android 14: 6 instrumentation tests đạt, 10/10 golden
-khớp Python; cảm biến, GPS, pin, chuông/rung và suy luận khi khóa màn hình ngắn hoạt
-động. Luồng APK → Firebase → Sensor Viewer đã được xác nhận bằng bộ đếm tăng.
-7 tests trạng thái chẩn đoán web đạt. Xem các báo cáo bên dưới để biết phạm vi cụ thể.
+Các bài kiểm thử bao gồm golden vectors, tiền xử lý cảm biến, quyết định cảnh báo
+và trạng thái chẩn đoán web. Kiểm tra luồng APK → Firebase → Sensor Viewer bằng
+bộ đếm suy luận tăng trên đúng thiết bị đã chọn.
 
 ## Giới hạn hiện tại
 
@@ -180,10 +179,7 @@ khớp Python; cảm biến, GPS, pin, chuông/rung và suy luận khi khóa mà
 
 - [Build và cài Fall Guard](fall-guard-app/README-ANDROID.md)
 - [Build Healthcare Map](healthcare-map/README-ANDROID.md)
-- [Checklist tích hợp](fall-guard-app/AI-INTEGRATION-CHECKLIST.md)
-- [Kiểm tra điện thoại](fall-guard-app/PHONE-TEST-REPORT.md)
 - [Chẩn đoán AI trên web](sensor-viewer/README-AI-DIAGNOSTICS.md)
-- [Xử lý lỗi thiếu telemetry](sensor-viewer/DIAGNOSTICS-FIX-REPORT.md)
 
 Repo lưu mã nguồn, giao diện, model, rules và tài liệu. Dependencies, APK, cache,
 log, dữ liệu runtime và cấu hình máy cá nhân được loại trừ bằng `.gitignore`.

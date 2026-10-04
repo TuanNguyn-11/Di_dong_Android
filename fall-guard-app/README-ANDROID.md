@@ -123,4 +123,4 @@ Tài liệu chính thức:
 - https://developer.android.com/develop/sensors-and-location/sensors/sensors_overview
 - https://developer.android.com/studio/run
 
-Xem `AI-INTEGRATION-CHECKLIST.md` để biết kết quả bàn giao và việc còn cần thử.
+Xem phần giới hạn hiện tại trong [README dự án](../README.md) khi đánh giá ứng dụng.
